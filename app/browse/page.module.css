@@ -1,0 +1,98 @@
+.page { min-height: 100vh; }
+
+.head {
+  padding: 28px 28px 20px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.head h1 { font-size: 22px; font-weight: 900; }
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 16px 28px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+
+.fBtn {
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--sub);
+  font-family: 'Cairo', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.fBtn:hover { border-color: rgba(224,64,251,0.3); color: var(--text); }
+.fBtn.active {
+  border-color: var(--accent);
+  background: rgba(224,64,251,0.1);
+  color: var(--accent);
+}
+
+.sortBar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sortBtn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--sub);
+  font-family: 'Cairo', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.sortBtn.active { color: var(--accent); border-color: var(--accent); }
+
+.content { padding: 24px 28px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.skeleton {
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--card) 25%, var(--card2) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.loadMore {
+  padding: 12px 32px;
+  background: var(--grad);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: 'Cairo', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.loadMore:hover { opacity: 0.83; }
+.loadMore:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@media (max-width: 640px) {
+  .filterBar, .sortBar, .content, .head { padding-right: 14px; padding-left: 14px; }
+}

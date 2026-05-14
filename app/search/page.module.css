@@ -1,0 +1,37 @@
+.page { min-height: 100vh; }
+
+.head {
+  padding: 28px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+}
+.head h1 { font-size: 20px; font-weight: 900; }
+.q { color: var(--accent); }
+.count { color: var(--sub); font-size: 13px; margin-top: 4px; }
+
+.content { padding: 24px 28px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.skel {
+  aspect-ratio: 2/3;
+  border-radius: 12px;
+  background: linear-gradient(90deg, var(--card) 25%, var(--card2) 50%, var(--card) 75%);
+  background-size: 200% 100%;
+  animation: sh 1.4s infinite;
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--sub);
+}
+.emptyIcon { font-size: 44px; margin-bottom: 12px; }
+
+@keyframes sh { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+@media(max-width:640px) { .content, .head { padding: 16px 14px; } }
