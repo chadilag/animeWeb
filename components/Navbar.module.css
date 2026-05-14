@@ -46,11 +46,21 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .link:hover, .active {
   color: var(--text);
   background: rgba(255, 255, 255, 0.07);
+}
+
+.watchlistLink {
+  color: var(--accent2);
+}
+
+.watchlistLink:hover, .watchlistLink.active {
+  background: rgba(124, 77, 255, 0.15);
+  color: var(--accent);
 }
 
 .searchForm {

@@ -1,0 +1,77 @@
+.page {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 24px 60px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.head h1 {
+  font-size: 28px;
+  font-weight: 900;
+  background: var(--grad);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.count {
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.clearBtn {
+  background: rgba(255, 50, 50, 0.15);
+  border: 1px solid rgba(255, 50, 50, 0.3);
+  color: #ff6b6b;
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Cairo', sans-serif;
+  font-size: 13px;
+  transition: background 0.2s;
+}
+
+.clearBtn:hover {
+  background: rgba(255, 50, 50, 0.3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
+}
+
+.empty {
+  text-align: center;
+  padding: 100px 20px;
+  color: var(--sub);
+}
+
+.emptyIcon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.empty p {
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.sub {
+  font-size: 14px !important;
+  color: var(--sub);
+  opacity: 0.7;
+}

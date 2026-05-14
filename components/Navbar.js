@@ -8,12 +8,24 @@ export default function Navbar() {
   const pathname = usePathname();
   const [q, setQ] = useState('');
   const [scrolled, setScrolled] = useState(false);
+  const [watchCount, setWatchCount] = useState(0);
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', fn);
     return () => window.removeEventListener('scroll', fn);
   }, []);
+
+  // تحديث عدد القائمة عند كل تنقل
+  useEffect(() => {
+    const update = () => {
+      const saved = JSON.parse(localStorage.getItem('watchlist') || '[]');
+      setWatchCount(saved.length);
+    };
+    update();
+    window.addEventListener('watchlist-updated', update);
+    return () => window.removeEventListener('watchlist-updated', update);
+  }, [pathname]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -24,6 +36,7 @@ export default function Navbar() {
     { href: '/', label: 'الرئيسية' },
     { href: '/browse', label: 'تصفح' },
     { href: '/top', label: 'الأعلى تقييماً' },
+    { href: '/watchlist', label: watchCount > 0 ? `🎌 قائمتي (${watchCount})` : '🎌 قائمتي' },
   ];
 
   return (
@@ -35,7 +48,7 @@ export default function Navbar() {
           <button
             key={l.href}
             onClick={() => router.push(l.href)}
-            className={`${styles.link} ${pathname === l.href ? styles.active : ''}`}
+            className={`${styles.link} ${pathname === l.href ? styles.active : ''} ${l.href === '/watchlist' ? styles.watchlistLink : ''}`}
           >
             {l.label}
           </button>

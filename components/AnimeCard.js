@@ -1,4 +1,6 @@
+'use client';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { getTitle, STATUS_AR } from '@/lib/anilist';
 import styles from './AnimeCard.module.css';
 
@@ -7,6 +9,27 @@ export default function AnimeCard({ anime, rank }) {
   const score = anime.averageScore ? (anime.averageScore / 10).toFixed(1) : null;
   const img = anime.coverImage?.extraLarge || anime.coverImage?.large;
   const airing = anime.status === 'RELEASING';
+  const [inList, setInList] = useState(false);
+
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    setInList(saved.some(a => a.id === anime.id));
+  }, [anime.id]);
+
+  const toggleWatchlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const saved = JSON.parse(localStorage.getItem('watchlist') || '[]');
+    let updated;
+    if (inList) {
+      updated = saved.filter(a => a.id !== anime.id);
+    } else {
+      updated = [...saved, anime];
+    }
+    localStorage.setItem('watchlist', JSON.stringify(updated));
+    setInList(!inList);
+    window.dispatchEvent(new Event('watchlist-updated'));
+  };
 
   return (
     <Link href={`/anime/${anime.id}`} className={styles.card}>
@@ -23,6 +46,13 @@ export default function AnimeCard({ anime, rank }) {
             ))}
           </div>
         </div>
+        <button
+          className={`${styles.heartBtn} ${inList ? styles.heartActive : ''}`}
+          onClick={toggleWatchlist}
+          title={inList ? 'إزالة من القائمة' : 'إضافة للقائمة'}
+        >
+          {inList ? '❤️' : '🤍'}
+        </button>
       </div>
 
       <div className={styles.body}>

@@ -18,7 +18,7 @@ export default function SearchPage() {
       query($search: String) {
         Page(perPage: 30) {
           media(search: $search, type: ANIME) {
-            id title { romaji english arabic }
+            id title { romaji english }
             coverImage { extraLarge large color }
             genres episodes status averageScore season seasonYear
           }
