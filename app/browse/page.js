@@ -4,23 +4,32 @@ import AnimeCard from '@/components/AnimeCard';
 import styles from './page.module.css';
 
 const GENRES = [
-  'الكل','Action','Adventure','Comedy','Drama','Fantasy',
-  'Horror','Mystery','Romance','Sci-Fi','Slice of Life','Sports',
-  'Supernatural','Thriller','Psychological','Historical','Music',
+  { val: 'الكل',       ar: 'الكل' },
+  { val: 'Action',     ar: 'أكشن' },
+  { val: 'Adventure',  ar: 'مغامرة' },
+  { val: 'Comedy',     ar: 'كوميدي' },
+  { val: 'Drama',      ar: 'دراما' },
+  { val: 'Fantasy',    ar: 'فانتازيا' },
+  { val: 'Horror',     ar: 'رعب' },
+  { val: 'Mecha',      ar: 'ميكا' },
+  { val: 'Mystery',    ar: 'غموض' },
+  { val: 'Romance',    ar: 'رومانسي' },
+  { val: 'Sci-Fi',     ar: 'خيال علمي' },
+  { val: 'Slice of Life', ar: 'يومي' },
+  { val: 'Sports',     ar: 'رياضي' },
+  { val: 'Supernatural', ar: 'خيال خارق' },
+  { val: 'Thriller',   ar: 'إثارة' },
+  { val: 'Psychological', ar: 'نفسي' },
+  { val: 'Music',      ar: 'موسيقي' },
+  { val: 'Ecchi',      ar: 'إيتشي' },
+  { val: 'Harem',      ar: 'هاريم' },
+  { val: 'Mahou Shoujo', ar: 'ماهو شوجو' },
 ];
 
-const GENRE_AR = {
-  'الكل':'الكل','Action':'أكشن','Adventure':'مغامرة','Comedy':'كوميدي',
-  'Drama':'دراما','Fantasy':'فانتازيا','Horror':'رعب','Mystery':'غموض',
-  'Romance':'رومانسي','Sci-Fi':'خيال علمي','Slice of Life':'يومي',
-  'Sports':'رياضي','Supernatural':'خيال خارق','Thriller':'إثارة',
-  'Psychological':'نفسي','Historical':'تاريخي','Music':'موسيقي',
-};
-
 const SORTS = [
-  { val: 'SCORE_DESC', ar: 'الأعلى تقييماً' },
+  { val: 'SCORE_DESC',      ar: 'الأعلى تقييماً' },
   { val: 'POPULARITY_DESC', ar: 'الأكثر شعبية' },
-  { val: 'TRENDING_DESC', ar: 'الأكثر رواجاً' },
+  { val: 'TRENDING_DESC',   ar: 'الأكثر رواجاً' },
   { val: 'START_DATE_DESC', ar: 'الأحدث' },
 ];
 
@@ -39,7 +48,7 @@ export default function BrowsePage() {
         Page(page: $page, perPage: 24) {
           pageInfo { hasNextPage }
           media(type: ANIME, genre: $genre, sort: $sort, status_not: NOT_YET_RELEASED) {
-            id title { romaji english arabic }
+            id title { romaji english }
             coverImage { extraLarge large color }
             genres episodes status averageScore season seasonYear
           }
@@ -48,15 +57,17 @@ export default function BrowsePage() {
     const variables = { sort: [s], page: p };
     if (g !== 'الكل') variables.genre = g;
 
-    const res = await fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, variables }),
-    });
-    const data = await res.json();
-    const media = data?.data?.Page?.media || [];
-    setHasMore(data?.data?.Page?.pageInfo?.hasNextPage || false);
-    setList(prev => append ? [...prev, ...media] : media);
+    try {
+      const res = await fetch('https://graphql.anilist.co', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, variables }),
+      });
+      const data = await res.json();
+      const media = data?.data?.Page?.media || [];
+      setHasMore(data?.data?.Page?.pageInfo?.hasNextPage || false);
+      setList(prev => append ? [...prev, ...media] : media);
+    } catch {}
     setLoading(false);
   };
 
@@ -75,24 +86,27 @@ export default function BrowsePage() {
     <div className={styles.page}>
       <div className={styles.head}>
         <h1>تصفح الأنمي</h1>
+        {!loading && list.length > 0 && (
+          <span className={styles.resultCount}>{list.length} نتيجة</span>
+        )}
       </div>
 
       {/* GENRE FILTER */}
       <div className={styles.filterBar}>
         {GENRES.map(g => (
           <button
-            key={g}
-            className={`${styles.fBtn} ${genre === g ? styles.active : ''}`}
-            onClick={() => setGenre(g)}
+            key={g.val}
+            className={`${styles.fBtn} ${genre === g.val ? styles.active : ''}`}
+            onClick={() => setGenre(g.val)}
           >
-            {GENRE_AR[g] || g}
+            {g.ar}
           </button>
         ))}
       </div>
 
       {/* SORT */}
       <div className={styles.sortBar}>
-        <span style={{ color: 'var(--sub)', fontSize: 13 }}>ترتيب حسب:</span>
+        <span className={styles.sortLabel}>ترتيب حسب:</span>
         {SORTS.map(s => (
           <button
             key={s.val}
@@ -112,15 +126,27 @@ export default function BrowsePage() {
               <div key={i} className={styles.skeleton} />
             ))}
           </div>
+        ) : list.length === 0 ? (
+          <div className={styles.empty}>
+            <div className={styles.emptyIcon}>🔍</div>
+            <p>لا توجد نتائج لهذا التصنيف</p>
+          </div>
         ) : (
           <>
             <div className={styles.grid}>
               {list.map(a => <AnimeCard key={a.id} anime={a} />)}
             </div>
-            {hasMore && (
-              <div style={{ textAlign: 'center', marginTop: 28 }}>
-                <button className={styles.loadMore} onClick={loadMore} disabled={loading}>
-                  {loading ? '⏳ تحميل...' : '⬇ تحميل المزيد'}
+            {loading && (
+              <div className={styles.grid} style={{ marginTop: 12 }}>
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <div key={i} className={styles.skeleton} />
+                ))}
+              </div>
+            )}
+            {hasMore && !loading && (
+              <div style={{ textAlign: 'center', marginTop: 32 }}>
+                <button className={styles.loadMore} onClick={loadMore}>
+                  ⬇ تحميل المزيد
                 </button>
               </div>
             )}

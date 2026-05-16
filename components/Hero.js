@@ -2,7 +2,60 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTitle, cleanDesc, STATUS_AR, SEASON_AR } from '@/lib/anilist';
+import { getAnimeStatus, setAnimeStatus, removeFromAll, LIST_TYPES } from '@/lib/watchlist';
 import styles from './Hero.module.css';
+
+function HeroListBtn({ anime }) {
+  const [status, setStatus] = useState(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setStatus(getAnimeStatus(anime.id));
+  }, [anime.id]);
+
+  const change = (e, newStatus) => {
+    e.stopPropagation();
+    if (newStatus === status) { removeFromAll(anime.id); setStatus(null); }
+    else { setAnimeStatus(anime, newStatus); setStatus(newStatus); }
+    setOpen(false);
+  };
+
+  const cur = status ? LIST_TYPES[status] : null;
+
+  return (
+    <div className={styles.listBtnWrap}>
+      <button
+        className={styles.btnGhost}
+        onClick={(e) => { e.stopPropagation(); setOpen(p => !p); }}
+        style={cur ? { borderColor: cur.color, color: cur.color } : {}}
+      >
+        {cur ? `${cur.icon} ${cur.label}` : '＋ قائمتي'}
+      </button>
+      {open && (
+        <div className={styles.heroDropdown}>
+          {Object.entries(LIST_TYPES).map(([key, val]) => (
+            <button
+              key={key}
+              className={`${styles.heroDropItem} ${status === key ? styles.heroDropActive : ''}`}
+              onClick={(e) => change(e, key)}
+              style={status === key ? { color: val.color } : {}}
+            >
+              {val.icon} {val.label}
+            </button>
+          ))}
+          {status && (
+            <button
+              className={`${styles.heroDropItem} ${styles.heroDropRemove}`}
+              onClick={(e) => { e.stopPropagation(); removeFromAll(anime.id); setStatus(null); setOpen(false); }}
+            >
+              🗑 إزالة
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Hero({ list }) {
   const [idx, setIdx] = useState(0);
@@ -51,7 +104,7 @@ export default function Hero({ list }) {
           <button className={styles.btnMain} onClick={() => router.push(`/anime/${a.id}`)}>
             📋 تفاصيل
           </button>
-          <button className={styles.btnGhost}>+ قائمتي</button>
+          <HeroListBtn anime={a} />
         </div>
 
         <div className={styles.dots}>
