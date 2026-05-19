@@ -20,10 +20,10 @@ export default async function HomePage() {
   return (
     <>
       <Hero list={trendingList} />
-      <Section title="🔥 الأكثر رواجاً الآن"       list={trendingList} horizontal />
-      <Section title="📅 موسم هذا العام"             list={seasonalList} horizontal alt />
-      <Section title="👑 الأعلى تقييماً على الإطلاق" list={topList} ranked />
-      <Section title="🌟 الأكثر شعبية"               list={popularList} horizontal alt />
+      <Section title="🔥 الأكثر رواجاً الآن"        list={trendingList} horizontal />
+      <Section title="📅 موسم هذا العام"              list={seasonalList} horizontal alt />
+      <Section title="👑 الأعلى تقييماً على الإطلاق"  list={topList}      horizontal ranked />
+      <Section title="🌟 الأكثر شعبية"                list={popularList}  horizontal alt />
     </>
   );
 }

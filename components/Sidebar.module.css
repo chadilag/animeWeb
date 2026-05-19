@@ -1,0 +1,121 @@
+.sidebar {
+  position: fixed;
+  top: 0; right: 0;
+  height: 100vh;
+  width: 220px;
+  z-index: 90;
+  background: rgba(8, 8, 18, 0.98);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 8px;
+  transition: width 0.25s ease;
+  overflow: hidden;
+  overflow-y: auto;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.collapsed { width: 64px; }
+
+/* زر الطي */
+.topRow {
+  display: flex;
+  justify-content: flex-start;
+  padding: 4px 2px 8px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.collapseBtn {
+  background: none; border: 1px solid var(--border);
+  color: var(--sub); border-radius: 7px;
+  width: 28px; height: 28px; cursor: pointer;
+  font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.collapseBtn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+/* Sections */
+.section { display: flex; flex-direction: column; gap: 1px; }
+
+.sectionLabel {
+  font-size: 9px; color: var(--sub); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 6px 8px 3px; opacity: 0.5;
+  white-space: nowrap;
+}
+
+/* Links */
+.link {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 8px; border-radius: 9px;
+  border: none; background: none;
+  color: var(--sub); font-family: 'Cairo', sans-serif;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; text-align: right;
+  transition: all 0.18s; position: relative;
+  overflow: hidden; white-space: nowrap;
+}
+.link:hover { background: rgba(255,255,255,0.06); color: var(--text); }
+.active { background: rgba(255,255,255,0.07); color: var(--text); }
+
+.highlightLink { color: var(--accent2); }
+.highlightLink:hover, .highlightLink.active {
+  background: rgba(124,77,255,0.12); color: var(--accent);
+}
+
+.icon { font-size: 17px; flex-shrink: 0; width: 22px; text-align: center; }
+.label { flex: 1; }
+
+.activeBar {
+  position: absolute; right: 0; top: 20%; bottom: 20%;
+  width: 3px; border-radius: 2px;
+  background: var(--grad);
+}
+
+.badge {
+  position: absolute; top: 3px; left: 3px;
+  background: var(--accent); color: #fff;
+  border-radius: 10px; padding: 1px 5px;
+  font-size: 9px; font-weight: 700;
+}
+
+/* فاجئني */
+.surpriseBtn {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 9px 8px; border-radius: 9px;
+  border: 1px dashed rgba(255,255,255,0.12);
+  background: none; color: var(--sub);
+  font-family: 'Cairo', sans-serif; font-size: 13px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s;
+  overflow: hidden; white-space: nowrap; margin: 2px 0;
+}
+.surpriseBtn:hover {
+  border-color: var(--accent2); color: var(--accent2);
+  background: rgba(124,77,255,0.08);
+}
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 6px 2px; flex-shrink: 0; }
+
+/* Overlay */
+.overlay {
+  position: fixed; inset: 0; z-index: 89;
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    right: -240px;
+    width: 220px !important;
+    transition: right 0.28s ease;
+    z-index: 200;
+    box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  }
+  .mobileOpen { right: 0 !important; }
+  .collapsed { width: 220px !important; }
+}

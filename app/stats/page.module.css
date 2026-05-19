@@ -1,0 +1,71 @@
+.page { max-width: 860px; margin: 0 auto; padding: 40px 24px 60px; }
+
+.pageTitle {
+  font-size: 28px; font-weight: 900; margin-bottom: 28px;
+  background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+/* ── Summary ── */
+.summaryGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; margin-bottom: 36px; }
+
+.summaryCard {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 20px 16px; text-align: center;
+  transition: border-color 0.2s;
+}
+.summaryCard:hover { border-color: var(--accent2); }
+
+.summaryNum { font-size: 32px; font-weight: 900; margin-bottom: 6px; }
+.summaryLabel { font-size: 12px; color: var(--sub); font-weight: 600; }
+
+/* ── Sections ── */
+.section { margin-bottom: 36px; }
+.sectionTitle { font-size: 18px; font-weight: 800; margin-bottom: 16px; }
+
+/* ── Status ── */
+.statusGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+
+.statusCard {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; text-align: center;
+  transition: transform 0.2s;
+}
+.statusCard:hover { transform: translateY(-3px); }
+
+.statusIcon { font-size: 24px; margin-bottom: 8px; }
+.statusCount { font-size: 28px; font-weight: 900; margin-bottom: 4px; }
+.statusLabel { font-size: 11px; color: var(--sub); font-weight: 600; }
+
+/* ── Genres ── */
+.genreList { display: flex; flex-direction: column; gap: 10px; }
+
+.genreRow { display: flex; align-items: center; gap: 12px; }
+.genreName { min-width: 110px; font-size: 13px; font-weight: 600; text-align: right; }
+
+.genreBarWrap { flex: 1; height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+.genreBar { height: 100%; background: var(--grad); border-radius: 4px; transition: width 0.8s ease; }
+
+.genreCount { min-width: 28px; font-size: 13px; color: var(--sub); text-align: left; }
+
+/* ── Top Anime ── */
+.topList { display: flex; flex-direction: column; gap: 10px; }
+
+.topItem {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 12px 16px;
+  transition: border-color 0.2s;
+}
+.topItem:hover { border-color: rgba(224,64,251,0.3); }
+
+.topRank { font-size: 22px; font-weight: 900; color: rgba(255,255,255,0.1); min-width: 36px; text-align: center; }
+.topImg { width: 42px; height: 58px; border-radius: 7px; object-fit: cover; flex-shrink: 0; }
+.topInfo { flex: 1; }
+.topTitle { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.topScore { font-size: 13px; color: #ffd700; font-weight: 700; }
+
+/* ── Empty ── */
+.empty { text-align: center; padding: 100px 20px; color: var(--sub); }
+.emptyIcon { font-size: 60px; margin-bottom: 16px; }
+.empty h1 { font-size: 24px; font-weight: 900; color: var(--text); margin-bottom: 10px; }
+.empty p { font-size: 14px; }

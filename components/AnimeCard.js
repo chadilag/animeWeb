@@ -5,6 +5,16 @@ import { getTitle, STATUS_AR } from '@/lib/anilist';
 import { getAnimeStatus, setAnimeStatus, removeFromAll, LIST_TYPES } from '@/lib/watchlist';
 import styles from './AnimeCard.module.css';
 
+const GENRE_AR = {
+  'Action':'أكشن','Adventure':'مغامرة','Comedy':'كوميدي','Drama':'دراما',
+  'Fantasy':'فانتازيا','Horror':'رعب','Mecha':'ميكا','Mystery':'غموض',
+  'Romance':'رومانسي','Sci-Fi':'خيال علمي','Slice of Life':'شريحة من الحياة',
+  'Sports':'رياضي','Supernatural':'خيال خارق','Thriller':'إثارة',
+  'Psychological':'نفسي','Music':'موسيقي','Ecchi':'إيتشي','Harem':'هاريم',
+  'Action & Adventure':'أكشن ومغامرة','Shounen':'شونن','Seinen':'سينن',
+  'Shoujo':'شوجو','Isekai':'إيسيكاي','Mahou Shoujo':'ماهو شوجو',
+};
+
 export default function AnimeCard({ anime, rank }) {
   const title = getTitle(anime);
   const score = anime.averageScore ? (anime.averageScore / 10).toFixed(1) : null;
@@ -18,36 +28,22 @@ export default function AnimeCard({ anime, rank }) {
     setStatus(getAnimeStatus(anime.id));
   }, [anime.id]);
 
-  // Close menu on outside click
   useEffect(() => {
     const handler = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setShowMenu(false);
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const handleStatusChange = (e, newStatus) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (newStatus === status) {
-      removeFromAll(anime.id);
-      setStatus(null);
-    } else {
-      setAnimeStatus(anime, newStatus);
-      setStatus(newStatus);
-    }
+    e.preventDefault(); e.stopPropagation();
+    if (newStatus === status) { removeFromAll(anime.id); setStatus(null); }
+    else { setAnimeStatus(anime, newStatus); setStatus(newStatus); }
     setShowMenu(false);
   };
 
-  const toggleMenu = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setShowMenu(prev => !prev);
-  };
-
+  const toggleMenu = (e) => { e.preventDefault(); e.stopPropagation(); setShowMenu(p => !p); };
   const currentType = status ? LIST_TYPES[status] : null;
 
   return (
@@ -62,13 +58,12 @@ export default function AnimeCard({ anime, rank }) {
           <div className={styles.hoverLayer}>
             <div className={styles.chips}>
               {(anime.genres || []).slice(0, 3).map(g => (
-                <span key={g} className={styles.chip}>{g}</span>
+                <span key={g} className={styles.chip}>{GENRE_AR[g] || g}</span>
               ))}
             </div>
           </div>
         </Link>
 
-        {/* زر القائمة */}
         <div ref={menuRef} className={styles.menuWrap}>
           <button
             className={`${styles.listBtn} ${status ? styles.listBtnActive : ''}`}
@@ -98,8 +93,7 @@ export default function AnimeCard({ anime, rank }) {
                   className={`${styles.dropItem} ${styles.dropRemove}`}
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); removeFromAll(anime.id); setStatus(null); setShowMenu(false); }}
                 >
-                  <span>🗑</span>
-                  <span>إزالة من القائمة</span>
+                  <span>🗑</span><span>إزالة من القائمة</span>
                 </button>
               )}
             </div>

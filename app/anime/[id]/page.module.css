@@ -2,17 +2,23 @@
 
 .banner { position: relative; height: 280px; overflow: hidden; }
 .bannerImg { width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }
-.bannerFog { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 0%, transparent 60%); }
+.bannerFog { position: absolute; inset: 0; background: linear-gradient(to top, var(--bg) 0%, transparent 60%); z-index: 1; }
 
+/* ✅ z-index أعلى من bannerFog */
 .trailerBannerBtn {
   position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+  z-index: 10;
   background: rgba(0,0,0,0.65); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.2); color: #fff;
+  border: 1px solid rgba(255,255,255,0.25); color: #fff;
   border-radius: 50px; padding: 11px 28px;
   font-family: 'Cairo', sans-serif; font-size: 15px; font-weight: 700;
-  cursor: pointer; transition: all 0.2s; z-index: 2;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
 }
-.trailerBannerBtn:hover { background: rgba(224,64,251,0.35); border-color: var(--accent); transform: translateX(-50%) scale(1.04); }
+.trailerBannerBtn:hover {
+  background: rgba(224,64,251,0.4);
+  border-color: var(--accent);
+  transform: translateX(-50%) scale(1.04);
+}
 
 .main { display: flex; gap: 32px; padding: 0 32px 32px; margin-top: -80px; position: relative; z-index: 2; }
 
@@ -35,7 +41,7 @@
   font-size: 13px; font-weight: 700; cursor: pointer; width: 100%;
   transition: all 0.2s; text-align: center;
 }
-.trailerBtn:hover { background: rgba(224,64,251,0.25); }
+.trailerBtn:hover { background: rgba(224,64,251,0.28); }
 
 .statusMenu {
   position: absolute; top: calc(100% + 6px); right: 0; left: 0;
@@ -53,6 +59,7 @@
 .statusActive { color: var(--text) !important; background: rgba(255,255,255,0.04); }
 .statusRemove:hover { background: rgba(244,67,54,0.15); color: #f44336 !important; }
 
+/* ── Trailer Modal ── */
 .modalOverlay {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(0,0,0,0.88); backdrop-filter: blur(6px);
@@ -85,7 +92,7 @@
 .airing { background: rgba(224,64,251,0.1); border: 1px solid rgba(224,64,251,0.3); border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; color: var(--accent); }
 
 .genres { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; }
-.genre { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 13px; font-size: 12px; transition: border-color 0.2s; }
+.genre { background: var(--card2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 13px; font-size: 12px; transition: border-color 0.2s; cursor: default; }
 .genre:hover { border-color: var(--accent); }
 
 .desc { font-size: 14px; color: var(--sub); line-height: 1.8; }
@@ -112,4 +119,5 @@
   .poster { width: 130px; }
   .info { padding-top: 0; }
   .block { padding: 20px 14px; }
+  .trailerBannerBtn { font-size: 13px; padding: 9px 20px; }
 }

@@ -14,15 +14,47 @@
   --sub: #8888aa;
   --border: rgba(255,255,255,0.08);
   --grad: linear-gradient(135deg, #e040fb, #7c4dff);
+  --sidebar-w: 220px;
 }
 
 html { scroll-behavior: smooth; }
+
 body {
   background: var(--bg);
   color: var(--text);
   font-family: 'Cairo', sans-serif;
   direction: rtl;
   overflow-x: hidden;
+}
+
+/* ── Layout مع Sidebar ── */
+.main-content {
+  margin-top: 60px;
+  margin-right: var(--sidebar-w);
+  min-height: 100vh;
+  transition: margin-right 0.25s ease;
+  background: var(--bg);
+}
+
+.site-footer {
+  margin-right: var(--sidebar-w);
+  background: var(--bg2);
+  border-top: 1px solid var(--border);
+  padding: 28px;
+  text-align: center;
+  color: var(--sub);
+  font-size: 13px;
+  transition: margin-right 0.25s ease;
+}
+
+.footer-logo {
+  font-size: 17px; font-weight: 900; margin-bottom: 6px;
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+
+@media (max-width: 900px) {
+  .main-content, .site-footer { margin-right: 0; }
 }
 
 ::-webkit-scrollbar { width: 5px; }

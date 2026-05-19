@@ -9,7 +9,11 @@ function StatusBtn({ anime }) {
   const [status, setStatus] = useState(null);
   const [open, setOpen] = useState(false);
   useEffect(() => { setStatus(getAnimeStatus(anime.id)); addToHistory(anime); }, [anime.id]);
-  const change = (s) => { if (s === status) { removeFromAll(anime.id); setStatus(null); } else { setAnimeStatus(anime, s); setStatus(s); } setOpen(false); };
+  const change = (s) => {
+    if (s === status) { removeFromAll(anime.id); setStatus(null); }
+    else { setAnimeStatus(anime, s); setStatus(s); }
+    setOpen(false);
+  };
   const cur = status ? LIST_TYPES[status] : null;
   return (
     <div style={{ position: 'relative' }}>
@@ -34,15 +38,23 @@ function StatusBtn({ anime }) {
 }
 
 function TrailerModal({ trailer, onClose }) {
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
   if (!trailer?.id) return null;
   const src = trailer.site === 'youtube'
     ? `https://www.youtube.com/embed/${trailer.id}?autoplay=1`
     : `https://www.dailymotion.com/embed/video/${trailer.id}?autoplay=1`;
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modalBox} onClick={e => e.stopPropagation()}>
         <button className={styles.modalClose} onClick={onClose}>✕</button>
-        <iframe src={src} className={styles.trailerFrame} allowFullScreen allow="autoplay; fullscreen" title="Trailer" />
+        <iframe src={src} className={styles.trailerFrame}
+          allowFullScreen allow="autoplay; fullscreen" title="Trailer" />
       </div>
     </div>
   );
@@ -69,29 +81,38 @@ export default function AnimePage({ anime: a }) {
   const mainStudio = a.studios?.nodes?.find(s => s.isAnimationStudio)?.name || a.studios?.nodes?.[0]?.name;
   const related = a.relations?.edges?.filter(e => e.node.type === 'ANIME').slice(0, 6) || [];
   const recs = a.recommendations?.nodes?.map(n => n.mediaRecommendation).filter(Boolean).slice(0, 6) || [];
+  const hasTrailer = !!a.trailer?.id;
 
   return (
     <div className={styles.page}>
       {showTrailer && <TrailerModal trailer={a.trailer} onClose={() => setShowTrailer(false)} />}
 
+      {/* BANNER */}
       <div className={styles.banner}>
         {a.bannerImage && <img src={a.bannerImage} alt="" className={styles.bannerImg} />}
         <div className={styles.bannerFog} />
-        {a.trailer?.id && (
-          <button className={styles.trailerBannerBtn} onClick={() => setShowTrailer(true)}>
+        {hasTrailer && (
+          <button
+            type="button"
+            className={styles.trailerBannerBtn}
+            onClick={() => setShowTrailer(true)}
+          >
             ▶ شاهد التريلر
           </button>
         )}
       </div>
 
+      {/* MAIN */}
       <div className={styles.main}>
         <div className={styles.posterWrap}>
           {a.coverImage?.extraLarge
             ? <img src={a.coverImage.extraLarge} alt={title} className={styles.poster} />
             : <div className={styles.posterPh} />}
           <StatusBtn anime={a} />
-          {a.trailer?.id && (
-            <button className={styles.trailerBtn} onClick={() => setShowTrailer(true)}>▶ التريلر</button>
+          {hasTrailer && (
+            <button type="button" className={styles.trailerBtn} onClick={() => setShowTrailer(true)}>
+              ▶ التريلر
+            </button>
           )}
         </div>
 
@@ -99,6 +120,7 @@ export default function AnimePage({ anime: a }) {
           <h1 className={styles.title}>{title}</h1>
           {a.title?.romaji && <div className={styles.titleSub}>{a.title.romaji}</div>}
           {a.title?.native && <div className={styles.titleSub}>{a.title.native}</div>}
+
           <div className={styles.stats}>
             {score && <div className={styles.stat}><span className={styles.statLabel}>التقييم</span><span className={styles.statValue} style={{ color: '#ffd700' }}>⭐ {score}</span></div>}
             {a.episodes && <div className={styles.stat}><span className={styles.statLabel}>الحلقات</span><span className={styles.statValue}>{a.episodes}</span></div>}
@@ -108,16 +130,22 @@ export default function AnimePage({ anime: a }) {
             {a.duration && <div className={styles.stat}><span className={styles.statLabel}>مدة الحلقة</span><span className={styles.statValue}>{a.duration} دقيقة</span></div>}
             {a.popularity && <div className={styles.stat}><span className={styles.statLabel}>المتابعون</span><span className={styles.statValue}>{a.popularity.toLocaleString()}</span></div>}
           </div>
+
           {a.nextAiringEpisode && (
-            <div className={styles.airing}>🕐 الحلقة {a.nextAiringEpisode.episode} تُبَث خلال {Math.floor(a.nextAiringEpisode.timeUntilAiring / 86400)} يوم</div>
+            <div className={styles.airing}>
+              🕐 الحلقة {a.nextAiringEpisode.episode} تُبَث خلال {Math.floor(a.nextAiringEpisode.timeUntilAiring / 86400)} يوم
+            </div>
           )}
+
           {a.genres?.length > 0 && (
             <div className={styles.genres}>{a.genres.map(g => <span key={g} className={styles.genre}>{g}</span>)}</div>
           )}
+
           {desc && <p className={styles.desc}>{desc}</p>}
         </div>
       </div>
 
+      {/* CHARACTERS */}
       {a.characters?.nodes?.length > 0 && (
         <div className={styles.block}>
           <h2 className={styles.blockTitle}>🎭 الشخصيات الرئيسية</h2>
@@ -132,6 +160,7 @@ export default function AnimePage({ anime: a }) {
         </div>
       )}
 
+      {/* RELATED */}
       {related.length > 0 && (
         <div className={styles.block} style={{ background: 'var(--bg2)' }}>
           <div style={{ padding: '0 28px' }}>
@@ -148,6 +177,7 @@ export default function AnimePage({ anime: a }) {
         </div>
       )}
 
+      {/* RECS */}
       {recs.length > 0 && (
         <div className={styles.block}>
           <h2 className={styles.blockTitle}>💡 قد يعجبك أيضاً</h2>

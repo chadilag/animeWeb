@@ -1,0 +1,28 @@
+.page {
+  min-height: 80vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px 20px;
+}
+
+.code {
+  font-size: 120px; font-weight: 900; line-height: 1;
+  background: var(--grad);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.emoji { font-size: 48px; margin-bottom: 16px; }
+
+.title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+
+.sub { font-size: 14px; color: var(--sub); margin-bottom: 32px; max-width: 360px; line-height: 1.6; }
+
+.btn {
+  background: var(--grad);
+  color: #fff; text-decoration: none;
+  border-radius: 12px; padding: 12px 28px;
+  font-size: 15px; font-weight: 700;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.btn:hover { opacity: 0.85; transform: translateY(-2px); }
