@@ -1,11 +1,10 @@
 import Section from '@/components/Section';
-import { fetchAniList, TOP_QUERY } from '@/lib/anilist';
+import { getTop } from '@/lib/anilist';
 
 export const metadata = { title: 'الأعلى تقييماً | أنمي ستريم' };
 
 export default async function TopPage() {
-  const data = await fetchAniList(TOP_QUERY, { page: 1, perPage: 50 });
-  const list = data?.Page?.media || [];
+  const list = await getTop({ page: 1, perPage: 50 });
 
   return (
     <div style={{ minHeight: '100vh' }}>

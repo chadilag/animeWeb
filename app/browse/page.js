@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AnimeCard from '@/components/AnimeCard';
+import { apiBrowse } from '@/lib/api';
 import styles from './page.module.css';
 
 const GENRES = [
@@ -43,30 +44,10 @@ export default function BrowsePage() {
 
   const fetchData = async (g, s, p, append = false) => {
     setLoading(true);
-    const query = `
-      query($genre: String, $sort: [MediaSort], $page: Int) {
-        Page(page: $page, perPage: 24) {
-          pageInfo { hasNextPage }
-          media(type: ANIME, genre: $genre, sort: $sort, status_not: NOT_YET_RELEASED) {
-            id title { romaji english }
-            coverImage { extraLarge large color }
-            genres episodes status averageScore season seasonYear
-          }
-        }
-      }`;
-    const variables = { sort: [s], page: p };
-    if (g !== 'الكل') variables.genre = g;
-
     try {
-      const res = await fetch('https://graphql.anilist.co', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, variables }),
-      });
-      const data = await res.json();
-      const media = data?.data?.Page?.media || [];
-      setHasMore(data?.data?.Page?.pageInfo?.hasNextPage || false);
-      setList(prev => append ? [...prev, ...media] : media);
+      const result = await apiBrowse({ genre: g, sort: s, page: p });
+      setHasMore(result.hasNextPage);
+      setList(prev => append ? [...prev, ...result.media] : result.media);
     } catch {}
     setLoading(false);
   };

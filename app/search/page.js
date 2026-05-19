@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnimeCard from '@/components/AnimeCard';
+import { apiSearch } from '@/lib/api';
 import styles from './page.module.css';
 
 const GENRES = [
@@ -67,13 +68,8 @@ export default function SearchPage() {
     if (year) variables.year = parseInt(year);
     if (minScore > 0) variables.score = minScore * 10;
 
-    fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: gqlQuery, variables }),
-    })
-      .then(r => r.json())
-      .then(d => { setResults(d?.data?.Page?.media || []); setLoading(false); setDone(true); })
+    apiSearch({ search: q, genre, sort, status, year, minScore })
+      .then(media => { setResults(media); setLoading(false); setDone(true); })
       .catch(() => { setLoading(false); setDone(true); });
   }, [q, genre, sort, status, year, minScore]);
 

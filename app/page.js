@@ -1,21 +1,16 @@
 import Hero from '@/components/Hero';
 import Section from '@/components/Section';
-import { fetchAniList, TRENDING_QUERY, POPULAR_QUERY, SEASONAL_QUERY, TOP_QUERY, getCurrentSeason } from '@/lib/anilist';
+import { getTrending, getPopular, getSeasonal, getTop, getCurrentSeason } from '@/lib/anilist';
 
 export default async function HomePage() {
   const { season, year } = getCurrentSeason();
 
-  const [trending, popular, seasonal, top] = await Promise.all([
-    fetchAniList(TRENDING_QUERY, { page: 1, perPage: 20 }),
-    fetchAniList(POPULAR_QUERY,  { page: 1, perPage: 20 }),
-    fetchAniList(SEASONAL_QUERY, { season, year, perPage: 20 }),
-    fetchAniList(TOP_QUERY,      { page: 1, perPage: 20 }),
+  const [trendingList, popularList, seasonalList, topList] = await Promise.all([
+    getTrending({ page: 1, perPage: 20 }),
+    getPopular({ page: 1, perPage: 20 }),
+    getSeasonal({ season, year, perPage: 20 }),
+    getTop({ page: 1, perPage: 20 }),
   ]);
-
-  const trendingList = trending?.Page?.media || [];
-  const popularList  = popular?.Page?.media  || [];
-  const seasonalList = seasonal?.Page?.media || [];
-  const topList      = top?.Page?.media      || [];
 
   return (
     <>

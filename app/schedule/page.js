@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { apiSchedule } from '@/lib/api';
 import styles from './page.module.css';
 
 const DAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -23,14 +24,8 @@ export default function SchedulePage() {
         }
       }`;
 
-    fetch('https://graphql.anilist.co', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    })
-      .then(r => r.json())
-      .then(d => {
-        const media = d?.data?.Page?.media || [];
+    apiSchedule()
+      .then(media => {
         const grouped = {};
         for (let i = 0; i < 7; i++) grouped[i] = [];
         media.forEach(anime => {
