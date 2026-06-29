@@ -18,11 +18,36 @@ const USER_LINKS = [
 ];
 
 export default function Sidebar() {
-  const router = useRouter();
+  const router   = useRouter();
   const pathname = usePathname();
   const [watchCount, setWatchCount] = useState(0);
-  const [collapsed, setCollapsed] = useState(false);
+  // افتراضي: مفتوح دائماً — يتذكر اختيار المستخدم
+  const [collapsed, setCollapsed]   = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mounted, setMounted]       = useState(false);
+  const [noAnim, setNoAnim]         = useState(true); // يمنع الانيميشن عند أول تحميل
+
+  // تحميل الحالة المحفوظة بعد الـ hydration
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem('sidebar-collapsed');
+    if (saved !== null) setCollapsed(saved === 'true');
+    // نفعّل الانيميشن بعد أن يستقر الـ state الأولي
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => setNoAnim(false));
+    });
+  }, []);
+
+  // حفظ الحالة عند كل تغيير
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem('sidebar-collapsed', String(collapsed));
+    document.documentElement.style.setProperty('--sidebar-w', collapsed ? '64px' : '220px');
+  }, [collapsed, mounted]);
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--sidebar-w', '220px');
+  }, []);
 
   useEffect(() => {
     const update = () => setWatchCount(getTotalCount());
@@ -31,15 +56,8 @@ export default function Sidebar() {
     return () => window.removeEventListener('watchlist-updated', update);
   }, []);
 
-  // إغلاق الموبايل عند التنقل
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // تحديث CSS variable عند الطي
-  useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-w', collapsed ? '64px' : '220px');
-  }, [collapsed]);
-
-  // الاستماع لحدث toggle-sidebar من Navbar
   useEffect(() => {
     const handler = () => setMobileOpen(p => !p);
     window.addEventListener('toggle-sidebar', handler);
@@ -51,17 +69,14 @@ export default function Sidebar() {
   const surprise = async () => {
     try {
       const query = `query { Page(page: 1, perPage: 50) { media(type: ANIME, sort: POPULARITY_DESC, status: FINISHED, averageScore_greater: 70) { id } } }`;
-      const res = await fetch('https://graphql.anilist.co', {
+      const res   = await fetch('https://graphql.anilist.co', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query }),
       });
       const data = await res.json();
       const list = data?.data?.Page?.media || [];
-      if (list.length > 0) {
-        const random = list[Math.floor(Math.random() * list.length)];
-        navigate(`/anime/${random.id}`);
-      }
+      if (list.length > 0) navigate(`/anime/${list[Math.floor(Math.random() * list.length)].id}`);
     } catch(e) { console.error(e); }
   };
 
@@ -69,29 +84,22 @@ export default function Sidebar() {
     <>
       {mobileOpen && <div className={styles.overlay} onClick={() => setMobileOpen(false)} />}
 
-      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''}`}>
+      <aside className={`${styles.sidebar} ${collapsed ? styles.collapsed : ''} ${mobileOpen ? styles.mobileOpen : ''} ${noAnim ? styles.noAnim : ''}`}>
 
-        {/* زر الطي فقط */}
         <div className={styles.topRow}>
-          <button
-            className={styles.collapseBtn}
+          <button className={styles.collapseBtn}
             onClick={() => setCollapsed(p => !p)}
-            title={collapsed ? 'توسيع' : 'تصغير'}
-          >
+            title={collapsed ? 'توسيع' : 'تصغير'}>
             {collapsed ? '‹' : '›'}
           </button>
         </div>
 
-        {/* روابط رئيسية */}
         <div className={styles.section}>
           {!collapsed && <div className={styles.sectionLabel}>القائمة</div>}
           {NAV_LINKS.map(l => (
-            <button
-              key={l.href}
-              onClick={() => navigate(l.href)}
+            <button key={l.href} onClick={() => navigate(l.href)}
               className={`${styles.link} ${pathname === l.href ? styles.active : ''}`}
-              title={collapsed ? l.label : ''}
-            >
+              title={collapsed ? l.label : ''}>
               <span className={styles.icon}>{l.icon}</span>
               {!collapsed && <span className={styles.label}>{l.label}</span>}
               {pathname === l.href && <span className={styles.activeBar} />}
@@ -99,7 +107,6 @@ export default function Sidebar() {
           ))}
         </div>
 
-        {/* فاجئني */}
         <button className={styles.surpriseBtn} onClick={surprise} title="أنمي عشوائي">
           <span className={styles.icon}>🎲</span>
           {!collapsed && <span className={styles.label}>فاجئني!</span>}
@@ -107,16 +114,12 @@ export default function Sidebar() {
 
         <div className={styles.divider} />
 
-        {/* حسابي */}
         <div className={styles.section}>
           {!collapsed && <div className={styles.sectionLabel}>حسابي</div>}
           {USER_LINKS.map(l => (
-            <button
-              key={l.href}
-              onClick={() => navigate(l.href)}
+            <button key={l.href} onClick={() => navigate(l.href)}
               className={`${styles.link} ${pathname === l.href ? styles.active : ''} ${l.highlight ? styles.highlightLink : ''}`}
-              title={collapsed ? l.label : ''}
-            >
+              title={collapsed ? l.label : ''}>
               <span className={styles.icon}>{l.icon}</span>
               {!collapsed && (
                 <span className={styles.label}>

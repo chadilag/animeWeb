@@ -4,43 +4,60 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTitle } from '@/lib/anilist';
 import { getEmbedSources, getAnikotoSource } from '@/lib/episodes';
+import { fetchSubtitleList, downloadSubtitle, parseSubtitle, getCurrentCue } from '@/lib/subtitles';
 import styles from './WatchPage.module.css';
 
-// ── مستمع لأحداث المشغّل (auto-next, progress) ───────────────────────────────
-function usePlayerEvents(onComplete, onProgress) {
+// ── هوك: استقبال أحداث المشغّل ───────────────────────────────────────────────
+function usePlayerTime(onTime, onComplete) {
   useEffect(() => {
     const handler = (event) => {
-      let data = event.data;
-      if (typeof data === 'string') {
-        try { data = JSON.parse(data); } catch { return; }
-      }
-      if (!data) return;
-
-      // VidNest / MegaPlay events
-      if (data.event === 'complete') onComplete?.();
-      if (data.event === 'time') onProgress?.(data.percent);
-      if (data.type === 'watching-log') {
-        const pct = data.currentTime / data.duration;
-        onProgress?.(pct);
-      }
+      let d = event.data;
+      if (typeof d === 'string') { try { d = JSON.parse(d); } catch { return; } }
+      if (!d) return;
+      if (d.event === 'time' && d.time != null)         onTime?.(d.time);
+      if (d.type === 'watching-log' && d.currentTime)   onTime?.(d.currentTime);
+      if (d.event === 'complete')                        onComplete?.();
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [onComplete, onProgress]);
+  }, [onTime, onComplete]);
 }
 
-export default function WatchPage({ anime, episodes, currentEp, initialSources, anilistId, malId }) {
-  const router    = useRouter();
-  const iframeRef = useRef(null);
+// ── مكوّن الترجمة Overlay ─────────────────────────────────────────────────────
+function SubtitleOverlay({ cues, currentTime, visible }) {
+  const cue = getCurrentCue(cues, currentTime);
+  if (!visible || !cue) return null;
+  return (
+    <div className={styles.subOverlay}>
+      <div className={styles.subText} dir="auto">
+        {cue.text.split('\n').map((line, i) => <div key={i}>{line}</div>)}
+      </div>
+    </div>
+  );
+}
 
-  const [sources, setSources]     = useState(initialSources);
-  const [srcIdx, setSrcIdx]       = useState(0);
-  const [loading, setLoading]     = useState(true);
-  const [failed, setFailed]       = useState(false);
-  const [epFilter, setEpFilter]   = useState('');
-  const [showEps, setShowEps]     = useState(true);
-  const [progress, setProgress]   = useState(0);
-  const [autoNext, setAutoNext]   = useState(true);
+// ── المكوّن الرئيسي ───────────────────────────────────────────────────────────
+export default function WatchPage({ anime, episodes, currentEp, initialSources, anilistId, malId }) {
+  const router = useRouter();
+
+  // مصادر البث
+  const [sources, setSources]   = useState(initialSources);
+  const [srcIdx, setSrcIdx]     = useState(0);
+  const [loading, setLoading]   = useState(true);
+  const [failed, setFailed]     = useState(false);
+
+  // الترجمة
+  const [subList, setSubList]       = useState([]);   // قائمة الترجمات المتاحة
+  const [subIdx, setSubIdx]         = useState(-1);   // -1 = بدون ترجمة
+  const [cues, setCues]             = useState([]);   // السطور المحللة
+  const [subLoading, setSubLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showSubtitles, setShowSubtitles] = useState(true);
+
+  // حلقات
+  const [epFilter, setEpFilter] = useState('');
+  const [showEps, setShowEps]   = useState(true);
+  const [autoNext, setAutoNext] = useState(true);
 
   const title      = getTitle(anime);
   const totalEps   = anime.episodes || episodes.length;
@@ -52,16 +69,33 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
     ? episodes.filter(e => String(e.number).includes(epFilter) || e.title?.includes(epFilter))
     : episodes;
 
-  // ── حفظ المشاهدة في localStorage ──────────────────────────────────────────
+  // ── تحميل قائمة الترجمات ─────────────────────────────────────────────────
   useEffect(() => {
-    try {
-      const h = JSON.parse(localStorage.getItem('watchHistory') || '{}');
-      h[anilistId] = { ep: currentEp, title, updatedAt: Date.now() };
-      localStorage.setItem('watchHistory', JSON.stringify(h));
-    } catch {}
-  }, [anilistId, currentEp, title]);
+    if (!malId) return;
+    setSubList([]); setSubIdx(-1); setCues([]);
+    fetchSubtitleList(malId, currentEp).then(list => {
+      setSubList(list);
+      // اختر العربية تلقائياً لو موجودة
+      const arIdx = list.findIndex(s =>
+        s.language === 'ar' || s.language === 'AR' ||
+        s.language?.toLowerCase().includes('arab')
+      );
+      if (arIdx !== -1) setSubIdx(arIdx);
+    });
+  }, [malId, currentEp]);
 
-  // ── إضافة مصدر Anikoto في الخلفية (أكثر ضماناً) ──────────────────────────
+  // ── تحميل ملف الترجمة عند اختيارها ──────────────────────────────────────
+  useEffect(() => {
+    if (subIdx === -1 || !subList[subIdx]?.url) { setCues([]); return; }
+    setSubLoading(true);
+    const url = subList[subIdx].url;
+    downloadSubtitle(url).then(text => {
+      setCues(parseSubtitle(text, url));
+      setSubLoading(false);
+    });
+  }, [subIdx, subList]);
+
+  // ── Anikoto في الخلفية ────────────────────────────────────────────────────
   useEffect(() => {
     if (!malId) return;
     getAnikotoSource(malId, currentEp).then(src => {
@@ -71,41 +105,47 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
 
   // ── إعادة ضبط عند تغيير الحلقة ──────────────────────────────────────────
   useEffect(() => {
-    setSrcIdx(0);
-    setLoading(true);
-    setFailed(false);
-    setProgress(0);
+    setSrcIdx(0); setLoading(true); setFailed(false);
+    setCurrentTime(0); setCues([]);
     setSources(getEmbedSources(anilistId, malId, currentEp));
   }, [currentEp, anilistId, malId]);
 
-  // ── الانتقال للحلقة التالية تلقائياً ────────────────────────────────────
+  // ── حفظ سجل المشاهدة ─────────────────────────────────────────────────────
+  useEffect(() => {
+    try {
+      const h = JSON.parse(localStorage.getItem('watchHistory') || '{}');
+      h[anilistId] = { ep: currentEp, title, updatedAt: Date.now() };
+      localStorage.setItem('watchHistory', JSON.stringify(h));
+    } catch {}
+  }, [anilistId, currentEp, title]);
+
+  // ── أحداث المشغّل ────────────────────────────────────────────────────────
+  const handleTime     = useCallback(t => setCurrentTime(t), []);
   const handleComplete = useCallback(() => {
-    if (autoNext && nextEp) {
-      setTimeout(() => router.push(`/anime/${anilistId}/watch/${nextEp}`), 1500);
-    }
+    if (autoNext && nextEp) setTimeout(() => router.push(`/anime/${anilistId}/watch/${nextEp}`), 1500);
   }, [autoNext, nextEp, anilistId, router]);
 
-  const handleProgress = useCallback((pct) => setProgress(pct * 100), []);
+  usePlayerTime(handleTime, handleComplete);
 
-  usePlayerEvents(handleComplete, handleProgress);
-
-  // ── تغيير المصدر تلقائياً عند الفشل ────────────────────────────────────
   const handleSrcFail = useCallback(() => {
-    if (srcIdx + 1 < sources.length) {
-      setSrcIdx(i => i + 1);
-      setLoading(true);
-    } else {
-      setFailed(true);
-      setLoading(false);
-    }
+    if (srcIdx + 1 < sources.length) { setSrcIdx(i => i + 1); setLoading(true); }
+    else { setFailed(true); setLoading(false); }
   }, [srcIdx, sources.length]);
 
-  const goToEp = (n) => router.push(`/anime/${anilistId}/watch/${n}`);
+  const goToEp = n => router.push(`/anime/${anilistId}/watch/${n}`);
+
+  // ── لغة الترجمة للعرض ────────────────────────────────────────────────────
+  const langLabel = (s) => {
+    const l = s.language?.toLowerCase();
+    if (l === 'ar') return '🇸🇦 عربي';
+    if (l === 'en') return '🇬🇧 إنجليزي';
+    return s.language?.toUpperCase() || '?';
+  };
 
   return (
     <div className={styles.page}>
 
-      {/* ── PLAYER SECTION ────────────────────────────────────────────────── */}
+      {/* ── PLAYER ────────────────────────────────────────────────────────── */}
       <div className={styles.playerSection}>
 
         {/* Breadcrumb */}
@@ -118,103 +158,155 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
           )}
         </div>
 
-        {/* المشغّل */}
+        {/* المشغّل + Overlay الترجمة */}
         <div className={styles.playerWrap}>
           {loading && !failed && (
             <div className={styles.loadOverlay}>
-              <div className={styles.spinner} />
-              <p>جارٍ تحميل الحلقة...</p>
-              {srcIdx > 0 && <p className={styles.tryingNext}>جارٍ تجربة المصدر {srcIdx + 1}...</p>}
+              {/* بانر الأنمي كخلفية */}
+              {anime.bannerImage && (
+                <img src={anime.bannerImage} alt="" className={styles.loadBannerBg} />
+              )}
+              <div className={styles.loadBannerFog} />
+              {/* المحتوى فوق البانر */}
+              <div className={styles.loadContent}>
+                {anime.coverImage?.extraLarge && (
+                  <img src={anime.coverImage.extraLarge} alt={title} className={styles.loadPoster} />
+                )}
+                <div className={styles.loadInfo}>
+                  <div className={styles.loadTitle}>{title}</div>
+                  <div className={styles.loadEp}>الحلقة {currentEp}</div>
+                  {epData?.title && epData.title !== `الحلقة ${currentEp}` && (
+                    <div className={styles.loadEpName}>{epData.title}</div>
+                  )}
+                  <div className={styles.loadSpinnerRow}>
+                    <div className={styles.spinner} />
+                    <span>{srcIdx > 0 ? `جارٍ تجربة المصدر ${srcIdx + 1}...` : 'جارٍ تحميل الحلقة...'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {failed ? (
             <div className={styles.failBox}>
               <div className={styles.failIcon}>📡</div>
-              <p className={styles.failTitle}>تعذّر تحميل الحلقة من جميع المصادر</p>
-              <p className={styles.failSub}>قد تكون الحلقة غير متوفرة حالياً</p>
+              <p className={styles.failTitle}>تعذّر تحميل الحلقة</p>
+              <p className={styles.failSub}>جرّب لاحقاً أو اختر حلقة أخرى</p>
               <div className={styles.failBtns}>
                 <button className={styles.retryBtn}
                   onClick={() => { setSrcIdx(0); setFailed(false); setLoading(true); }}>
                   🔄 إعادة المحاولة
                 </button>
                 {nextEp && (
-                  <button className={styles.skipBtn} onClick={() => goToEp(nextEp)}>
-                    التالية ›
-                  </button>
+                  <button className={styles.skipBtn} onClick={() => goToEp(nextEp)}>التالية ›</button>
                 )}
               </div>
             </div>
           ) : (
-            <iframe
-              ref={iframeRef}
-              key={`${srcIdx}-${currentEp}`}
-              src={currentSrc?.url}
-              className={styles.iframe}
-              allowFullScreen
-              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
-              referrerPolicy="no-referrer"
-              onLoad={() => setLoading(false)}
-              onError={handleSrcFail}
-              title={`${title} - حلقة ${currentEp}`}
-            />
+            <>
+              <iframe
+                key={`${srcIdx}-${currentEp}`}
+                src={currentSrc?.url}
+                className={styles.iframe}
+                allowFullScreen
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                referrerPolicy="no-referrer"
+                onLoad={() => setLoading(false)}
+                onError={handleSrcFail}
+                title={`${title} - حلقة ${currentEp}`}
+              />
+              {/* ── SUBTITLE OVERLAY ── */}
+              <SubtitleOverlay
+                cues={cues}
+                currentTime={currentTime}
+                visible={showSubtitles && cues.length > 0}
+              />
+            </>
           )}
+        </div>
 
-          {/* شريط التقدم */}
-          {progress > 0 && (
-            <div className={styles.progressBar}>
-              <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+        {/* ── شريط الأدوات ── */}
+        <div className={styles.toolbar}>
+
+          {/* المصادر */}
+          <div className={styles.toolRow}>
+            <span className={styles.toolLabel}>🎬 المصدر:</span>
+            <div className={styles.btnGroup}>
+              {sources.map((src, i) => (
+                <button key={i}
+                  className={`${styles.smallBtn} ${i === srcIdx ? styles.smallBtnActive : ''}`}
+                  onClick={() => { setSrcIdx(i); setLoading(true); setFailed(false); }}>
+                  {src.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* الترجمة */}
+          <div className={styles.toolRow}>
+            <span className={styles.toolLabel}>💬 الترجمة:</span>
+            <div className={styles.btnGroup}>
+              <button
+                className={`${styles.smallBtn} ${subIdx === -1 ? styles.smallBtnActive : ''}`}
+                onClick={() => { setSubIdx(-1); setCues([]); }}>
+                بدون
+              </button>
+              {subList.map((sub, i) => (
+                <button key={i}
+                  className={`${styles.smallBtn} ${subIdx === i ? styles.smallBtnActive : ''}`}
+                  onClick={() => setSubIdx(i)}>
+                  {langLabel(sub)}
+                  {subLoading && subIdx === i && ' ⏳'}
+                </button>
+              ))}
+              {subList.length === 0 && (
+                <span className={styles.noSubs}>
+                  {malId ? 'لا توجد ترجمات متاحة' : 'يحتاج MAL ID لتحميل الترجمة'}
+                </span>
+              )}
+            </div>
+            {cues.length > 0 && (
+              <button
+                className={`${styles.smallBtn} ${showSubtitles ? styles.smallBtnActive : ''}`}
+                onClick={() => setShowSubtitles(p => !p)}
+                title="إظهار/إخفاء الترجمة">
+                {showSubtitles ? '👁 ظاهرة' : '👁 مخفية'}
+              </button>
+            )}
+          </div>
+
+          {/* ملاحظة إذا لم تتزامن الترجمة */}
+          {cues.length > 0 && currentTime === 0 && (
+            <div className={styles.subNote}>
+              💡 الترجمة محمّلة — ستظهر تلقائياً بمجرد بدء التشغيل عبر postMessage من المشغّل
             </div>
           )}
         </div>
 
-        {/* المصادر */}
-        <div className={styles.sourcesRow}>
-          <span className={styles.srcLabel}>🎬 المصدر:</span>
-          <div className={styles.srcBtns}>
-            {sources.map((src, i) => (
-              <button key={i}
-                className={`${styles.srcBtn} ${i === srcIdx ? styles.srcActive : ''}`}
-                onClick={() => { setSrcIdx(i); setLoading(true); setFailed(false); }}
-                title={src.url}
-              >
-                {src.label}
-              </button>
-            ))}
-          </div>
+        {/* التنقل بين الحلقات */}
+        <div className={styles.navRow}>
+          {prevEp
+            ? <button className={styles.navBtn} onClick={() => goToEp(prevEp)}>‹ الحلقة {prevEp}</button>
+            : <div />}
+          <Link href={`/anime/${anilistId}`} className={styles.detailBtn}>📋 صفحة الأنمي</Link>
+          {nextEp
+            ? <button className={styles.navBtn} onClick={() => goToEp(nextEp)}>الحلقة {nextEp} ›</button>
+            : <div />}
         </div>
 
-        {/* أزرار التحكم */}
-        <div className={styles.controls}>
-          <div className={styles.navRow}>
-            {prevEp
-              ? <button className={styles.navBtn} onClick={() => goToEp(prevEp)}>‹ الحلقة {prevEp}</button>
-              : <div />}
+        {/* Auto-next toggle */}
+        <label className={styles.toggle}>
+          <input type="checkbox" checked={autoNext} onChange={e => setAutoNext(e.target.checked)} />
+          <span className={styles.slider} />
+          <span className={styles.toggleLabel}>تشغيل الحلقة التالية تلقائياً</span>
+        </label>
 
-            <Link href={`/anime/${anilistId}`} className={styles.detailBtn}>📋 صفحة الأنمي</Link>
-
-            {nextEp
-              ? <button className={styles.navBtn} onClick={() => goToEp(nextEp)}>الحلقة {nextEp} ›</button>
-              : <div />}
-          </div>
-
-          {/* Auto-next toggle */}
-          <div className={styles.autoNextRow}>
-            <label className={styles.toggle}>
-              <input type="checkbox" checked={autoNext} onChange={e => setAutoNext(e.target.checked)} />
-              <span className={styles.toggleSlider} />
-              <span className={styles.toggleLabel}>التشغيل التلقائي للحلقة التالية</span>
-            </label>
-          </div>
-        </div>
-
-        {/* ملاحظة */}
         <div className={styles.notice}>
-          ⚠️ إذا لم يعمل المصدر الحالي سيتم الانتقال تلقائياً للمصدر التالي — يمكنك أيضاً التبديل يدوياً
+          ⚠️ إذا لم يعمل المصدر الحالي سيتم الانتقال تلقائياً للمصدر التالي
         </div>
       </div>
 
-      {/* ── SIDEBAR قائمة الحلقات ─────────────────────────────────────────── */}
+      {/* ── SIDEBAR ───────────────────────────────────────────────────────── */}
       <div className={`${styles.sidebar} ${showEps ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHead}>
           <h3>الحلقات ({totalEps})</h3>
@@ -222,22 +314,13 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
             {showEps ? '✕' : '☰'}
           </button>
         </div>
-
-        <input
-          className={styles.epSearch}
-          placeholder="ابحث..."
-          value={epFilter}
-          onChange={e => setEpFilter(e.target.value)}
-        />
-
+        <input className={styles.epSearch} placeholder="ابحث..." value={epFilter}
+          onChange={e => setEpFilter(e.target.value)} />
         <div className={styles.epList}>
           {filteredEps.map(ep => (
             <button key={ep.number}
-              className={`${styles.epItem}
-                ${ep.number === currentEp ? styles.epActive : ''}
-                ${ep.filler ? styles.epFiller : ''}`}
-              onClick={() => goToEp(ep.number)}
-            >
+              className={`${styles.epItem} ${ep.number === currentEp ? styles.epActive : ''} ${ep.filler ? styles.epFiller : ''}`}
+              onClick={() => goToEp(ep.number)}>
               <span className={styles.epNum}>{ep.number}</span>
               <div className={styles.epMeta}>
                 <span className={styles.epTitle}>
@@ -251,13 +334,10 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
               {ep.number === currentEp && <span className={styles.playIcon}>▶</span>}
             </button>
           ))}
-          {filteredEps.length === 0 && (
-            <div className={styles.noRes}>لا توجد نتائج</div>
-          )}
+          {filteredEps.length === 0 && <div className={styles.noRes}>لا توجد نتائج</div>}
         </div>
       </div>
 
-      {/* زر موبايل */}
       <button className={styles.mobileBtn} onClick={() => setShowEps(p => !p)}>
         {showEps ? '✕ إخفاء' : '☰ الحلقات'}
       </button>

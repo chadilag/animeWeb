@@ -44,12 +44,63 @@
 
 .loadOverlay {
   position: absolute; inset: 0; z-index: 5;
-  background: rgba(0,0,0,0.92);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  gap: 12px; color: var(--sub); font-size: 13px;
+  background: #000;
+  overflow: hidden;
 }
-.tryingNext { font-size: 11px; color: var(--accent); }
+
+.loadBannerBg {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  opacity: 0.25;
+  filter: blur(3px);
+  transform: scale(1.05);
+}
+
+.loadBannerFog {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.4) 100%);
+}
+
+.loadContent {
+  position: relative; z-index: 2;
+  display: flex; align-items: center; gap: 20px;
+  padding: 20px; height: 100%;
+  justify-content: center;
+}
+
+.loadPoster {
+  width: 80px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+  flex-shrink: 0;
+}
+
+.loadInfo {
+  display: flex; flex-direction: column; gap: 6px;
+}
+
+.loadTitle {
+  font-size: clamp(15px, 2.5vw, 22px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+}
+
+.loadEp {
+  font-size: 14px; font-weight: 700;
+  color: var(--accent);
+}
+
+.loadEpName {
+  font-size: 12px; color: rgba(255,255,255,0.6);
+}
+
+.loadSpinnerRow {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 6px; color: rgba(255,255,255,0.5);
+  font-size: 12px;
+}
 
 .failBox {
   position: absolute; inset: 0;
@@ -334,3 +385,132 @@
 
   .playerSection { padding: 12px 14px 100px; }
 }
+
+/* ── SUBTITLE OVERLAY ─────────────────────────────────── */
+.subOverlay {
+  position: absolute;
+  bottom: 8%;
+  left: 4%; right: 4%;
+  text-align: center;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.subText {
+  display: inline-block;
+  background: rgba(0, 0, 0, 0.78);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-family: 'Cairo', sans-serif;
+  font-size: clamp(14px, 2.2vw, 22px);
+  font-weight: 600;
+  line-height: 1.55;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.9);
+  max-width: 100%;
+  backdrop-filter: blur(2px);
+}
+
+/* ── TOOLBAR ──────────────────────────────────────────── */
+.toolbar {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.toolRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolLabel {
+  font-size: 12px;
+  color: var(--sub);
+  font-weight: 700;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.btnGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.smallBtn {
+  padding: 4px 11px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--sub);
+  font-family: 'Cairo', sans-serif;
+  font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all 0.18s;
+}
+.smallBtn:hover { border-color: var(--accent); color: var(--text); }
+.smallBtnActive {
+  border-color: var(--accent) !important;
+  background: rgba(224,64,251,0.12) !important;
+  color: var(--accent) !important;
+}
+
+.noSubs { font-size: 11px; color: var(--sub); font-style: italic; }
+
+.subNote {
+  font-size: 11px;
+  color: rgba(255,193,7,0.7);
+  background: rgba(255,193,7,0.05);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+/* ── NAV ROW ──────────────────────────────────────────── */
+.navRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+/* ── TOGGLE ───────────────────────────────────────────── */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  margin-top: 10px;
+}
+.toggle input { display: none; }
+.slider {
+  width: 36px; height: 20px;
+  background: var(--bg3);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  position: relative;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+.slider::after {
+  content: '';
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--sub);
+  transition: all 0.2s;
+}
+.toggle input:checked + .slider {
+  background: rgba(224,64,251,0.2);
+  border-color: var(--accent);
+}
+.toggle input:checked + .slider::after { right: auto; left: 2px; background: var(--accent); }
+.toggleLabel { font-size: 12px; color: var(--sub); }

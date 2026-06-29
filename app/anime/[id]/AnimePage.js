@@ -7,6 +7,26 @@ import { getAnimeStatus, setAnimeStatus, removeFromAll, LIST_TYPES, addToHistory
 import { fetchEpisodeList, getMalId } from '@/lib/episodes';
 import styles from './page.module.css';
 
+
+/* ── خرائط الترجمة ── */
+const GENRE_AR = {
+  'Action':'أكشن','Adventure':'مغامرة','Comedy':'كوميدي','Drama':'دراما',
+  'Fantasy':'فانتازيا','Horror':'رعب','Mecha':'ميكا','Mystery':'غموض',
+  'Romance':'رومانسي','Sci-Fi':'خيال علمي','Slice of Life':'يومي',
+  'Sports':'رياضي','Supernatural':'خيال خارق','Thriller':'إثارة',
+  'Psychological':'نفسي','Historical':'تاريخي','Music':'موسيقي',
+  'Ecchi':'إيتشي','Harem':'حريم','Isekai':'إيسيكاي','Military':'عسكري',
+  'School':'مدرسي','Game':'ألعاب','Kids':'أطفال','Magic':'سحر',
+  'Shounen':'شونن','Shoujo':'شوجو','Seinen':'سينن','Josei':'جوسي',
+};
+
+const RELATION_AR = {
+  ADAPTATION:'اقتباس',PREQUEL:'ما قبل القصة',SEQUEL:'تكملة',
+  PARENT:'الأصل',SIDE_STORY:'قصة جانبية',CHARACTER:'شخصية مشتركة',
+  SUMMARY:'ملخص',ALTERNATIVE:'نسخة بديلة',SPIN_OFF:'قصة منفردة',
+  OTHER:'أخرى',SOURCE:'المصدر',COMPILATION:'تجميع',CONTAINS:'يحتوي على',
+};
+
 /* ── زر الحالة ── */
 function StatusBtn({ anime }) {
   const [status, setStatus] = useState(null);
@@ -185,6 +205,21 @@ function EpisodesSection({ anime }) {
 /* ── الصفحة الرئيسية ── */
 export default function AnimePage({ anime: a }) {
   const [showTrailer, setShowTrailer] = useState(false);
+  const [translatedDesc, setTranslatedDesc] = useState('');
+
+  // ترجمة الوصف تلقائياً عند فتح الصفحة
+  useEffect(() => {
+    const rawDesc = cleanDesc(a.description || '');
+    if (!rawDesc) return;
+    fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: rawDesc }),
+    })
+      .then(r => r.json())
+      .then(d => { if (d.translated) setTranslatedDesc(d.translated); })
+      .catch(() => {});
+  }, [a.id]);
   const title      = getTitle(a);
   const desc       = cleanDesc(a.description || '');
   const score      = a.averageScore ? (a.averageScore / 10).toFixed(1) : null;
@@ -242,10 +277,15 @@ export default function AnimePage({ anime: a }) {
           )}
 
           {a.genres?.length > 0 && (
-            <div className={styles.genres}>{a.genres.map(g => <span key={g} className={styles.genre}>{g}</span>)}</div>
+            <div className={styles.genres}>{a.genres.map(g => <span key={g} className={styles.genre}>{GENRE_AR[g] || g}</span>)}</div>
           )}
 
-          {desc && <p className={styles.desc}>{desc}</p>}
+          {desc && (
+            <p className={styles.desc} dir="auto">
+              {translatedDesc || desc}
+              {!translatedDesc && <span style={{color:'var(--sub)',fontSize:11,marginRight:8}}>⏳ جارٍ الترجمة...</span>}
+            </p>
+          )}
         </div>
       </div>
 
@@ -278,7 +318,7 @@ export default function AnimePage({ anime: a }) {
             <div className={styles.relGrid}>
               {related.map(e => (
                 <div key={e.node.id}>
-                  <div className={styles.relType}>{e.relationType}</div>
+                  <div className={styles.relType}>{RELATION_AR[e.relationType] || e.relationType}</div>
                   <MiniCard anime={{ ...e.node, coverImage: { large: e.node.coverImage?.large, extraLarge: e.node.coverImage?.large } }} />
                 </div>
               ))}

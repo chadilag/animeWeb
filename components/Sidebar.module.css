@@ -119,3 +119,10 @@
   .mobileOpen { right: 0 !important; }
   .collapsed { width: 220px !important; }
 }
+
+/* يلغي كل الانيميشن عند أول تحميل */
+.noAnim,
+.noAnim * {
+  transition: none !important;
+  animation: none !important;
+}
