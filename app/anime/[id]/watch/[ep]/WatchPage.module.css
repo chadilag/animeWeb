@@ -514,3 +514,56 @@
 }
 .toggle input:checked + .slider::after { right: auto; left: 2px; background: var(--accent); }
 .toggleLabel { font-size: 12px; color: var(--sub); }
+
+/* ── Sub / Dub Tabs ──────────────────────────────────────────────────────── */
+.langTabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.langTab {
+  padding: 5px 14px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--card2);
+  color: var(--sub);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.18s;
+  font-weight: 600;
+}
+
+.langTab:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.langTabActive {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.langTabDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.noDub {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* ── Quality Badge ───────────────────────────────────────────────────────── */
+.qualityBadge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.12);
+  font-size: 10px;
+  font-weight: 700;
+  vertical-align: middle;
+}

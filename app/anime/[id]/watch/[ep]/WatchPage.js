@@ -3,8 +3,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getTitle } from '@/lib/anilist';
-import { getEmbedSources, getAnikotoSource } from '@/lib/episodes';
-import { fetchSubtitleList, downloadSubtitle, parseSubtitle, getCurrentCue } from '@/lib/subtitles';
+import { getEmbedSources, getAnikotoSource, groupSourcesByLang } from '@/lib/episodes';
+import { fetchSubtitleList, downloadSubtitle, parseSubtitle, getCurrentCue, translateCues, isArabic } from '@/lib/subtitles';
 import styles from './WatchPage.module.css';
 
 // ── هوك: استقبال أحداث المشغّل ───────────────────────────────────────────────
@@ -45,12 +45,14 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
   const [srcIdx, setSrcIdx]     = useState(0);
   const [loading, setLoading]   = useState(true);
   const [failed, setFailed]     = useState(false);
+  const [langTab, setLangTab]   = useState('sub'); // 'sub' | 'dub'
 
   // الترجمة
-  const [subList, setSubList]       = useState([]);   // قائمة الترجمات المتاحة
-  const [subIdx, setSubIdx]         = useState(-1);   // -1 = بدون ترجمة
-  const [cues, setCues]             = useState([]);   // السطور المحللة
-  const [subLoading, setSubLoading] = useState(false);
+  const [subList, setSubList]         = useState([]);
+  const [subIdx, setSubIdx]           = useState(-1);
+  const [cues, setCues]               = useState([]);
+  const [subLoading, setSubLoading]   = useState(false);
+  const [translateProgress, setTranslateProgress] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [showSubtitles, setShowSubtitles] = useState(true);
 
@@ -64,7 +66,13 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
   const epData     = episodes.find(e => e.number === currentEp);
   const prevEp     = currentEp > 1 ? currentEp - 1 : null;
   const nextEp     = currentEp < totalEps ? currentEp + 1 : null;
-  const currentSrc = sources[srcIdx];
+
+  // ── تصفية المصادر حسب اللغة ──────────────────────────────────────────────
+  const grouped     = groupSourcesByLang(sources);
+  const activeSrcs  = langTab === 'dub' && grouped.dub.length > 0 ? grouped.dub : grouped.sub;
+  const currentSrc  = activeSrcs[srcIdx] || sources[0];
+  const hasDub      = grouped.dub.length > 0;
+
   const filteredEps = epFilter
     ? episodes.filter(e => String(e.number).includes(epFilter) || e.title?.includes(epFilter))
     : episodes;
@@ -75,7 +83,6 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
     setSubList([]); setSubIdx(-1); setCues([]);
     fetchSubtitleList(malId, currentEp).then(list => {
       setSubList(list);
-      // اختر العربية تلقائياً لو موجودة
       const arIdx = list.findIndex(s =>
         s.language === 'ar' || s.language === 'AR' ||
         s.language?.toLowerCase().includes('arab')
@@ -84,15 +91,32 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
     });
   }, [malId, currentEp]);
 
-  // ── تحميل ملف الترجمة عند اختيارها ──────────────────────────────────────
+  // ── تحميل ملف الترجمة ────────────────────────────────────────────────────
   useEffect(() => {
-    if (subIdx === -1 || !subList[subIdx]?.url) { setCues([]); return; }
-    setSubLoading(true);
-    const url = subList[subIdx].url;
-    downloadSubtitle(url).then(text => {
-      setCues(parseSubtitle(text, url));
-      setSubLoading(false);
-    });
+    if (subIdx === -1 || !subList[subIdx]) { setCues([]); return; }
+    const sub = subList[subIdx];
+
+    if (sub.source === 'auto-translate') {
+      // ترجمة آلية: نحمّل الملف الإنجليزي الأصلي ثم نترجمه سطر بسطر
+      setSubLoading(true);
+      setTranslateProgress({ done: 0, total: 1 });
+      downloadSubtitle(sub._originalUrl).then(async text => {
+        const englishCues = parseSubtitle(text, sub._originalUrl);
+        const arabicCues = await translateCues(englishCues, (done, total) => {
+          setTranslateProgress({ done, total });
+        });
+        setCues(arabicCues);
+        setSubLoading(false);
+        setTranslateProgress(null);
+      });
+    } else {
+      if (!sub.url) { setCues([]); return; }
+      setSubLoading(true);
+      downloadSubtitle(sub.url).then(text => {
+        setCues(parseSubtitle(text, sub.url));
+        setSubLoading(false);
+      });
+    }
   }, [subIdx, subList]);
 
   // ── Anikoto في الخلفية ────────────────────────────────────────────────────
@@ -109,6 +133,11 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
     setCurrentTime(0); setCues([]);
     setSources(getEmbedSources(anilistId, malId, currentEp));
   }, [currentEp, anilistId, malId]);
+
+  // ── إعادة ضبط srcIdx عند تبديل اللغة ────────────────────────────────────
+  useEffect(() => {
+    setSrcIdx(0); setLoading(true); setFailed(false);
+  }, [langTab]);
 
   // ── حفظ سجل المشاهدة ─────────────────────────────────────────────────────
   useEffect(() => {
@@ -128,14 +157,14 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
   usePlayerTime(handleTime, handleComplete);
 
   const handleSrcFail = useCallback(() => {
-    if (srcIdx + 1 < sources.length) { setSrcIdx(i => i + 1); setLoading(true); }
+    if (srcIdx + 1 < activeSrcs.length) { setSrcIdx(i => i + 1); setLoading(true); }
     else { setFailed(true); setLoading(false); }
-  }, [srcIdx, sources.length]);
+  }, [srcIdx, activeSrcs.length]);
 
   const goToEp = n => router.push(`/anime/${anilistId}/watch/${n}`);
 
-  // ── لغة الترجمة للعرض ────────────────────────────────────────────────────
   const langLabel = (s) => {
+    if (s.source === 'auto-translate') return '🤖 ترجمة تلقائية';
     const l = s.language?.toLowerCase();
     if (l === 'ar') return '🇸🇦 عربي';
     if (l === 'en') return '🇬🇧 إنجليزي';
@@ -158,16 +187,14 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
           )}
         </div>
 
-        {/* المشغّل + Overlay الترجمة */}
+        {/* المشغّل */}
         <div className={styles.playerWrap}>
           {loading && !failed && (
             <div className={styles.loadOverlay}>
-              {/* بانر الأنمي كخلفية */}
               {anime.bannerImage && (
                 <img src={anime.bannerImage} alt="" className={styles.loadBannerBg} />
               )}
               <div className={styles.loadBannerFog} />
-              {/* المحتوى فوق البانر */}
               <div className={styles.loadContent}>
                 {anime.coverImage?.extraLarge && (
                   <img src={anime.coverImage.extraLarge} alt={title} className={styles.loadPoster} />
@@ -191,7 +218,7 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
             <div className={styles.failBox}>
               <div className={styles.failIcon}>📡</div>
               <p className={styles.failTitle}>تعذّر تحميل الحلقة</p>
-              <p className={styles.failSub}>جرّب لاحقاً أو اختر حلقة أخرى</p>
+              <p className={styles.failSub}>جرّب مصدراً آخر أو عد لاحقاً</p>
               <div className={styles.failBtns}>
                 <button className={styles.retryBtn}
                   onClick={() => { setSrcIdx(0); setFailed(false); setLoading(true); }}>
@@ -205,7 +232,7 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
           ) : (
             <>
               <iframe
-                key={`${srcIdx}-${currentEp}`}
+                key={`${currentSrc?.url}-${currentEp}`}
                 src={currentSrc?.url}
                 className={styles.iframe}
                 allowFullScreen
@@ -215,7 +242,6 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
                 onError={handleSrcFail}
                 title={`${title} - حلقة ${currentEp}`}
               />
-              {/* ── SUBTITLE OVERLAY ── */}
               <SubtitleOverlay
                 cues={cues}
                 currentTime={currentTime}
@@ -228,15 +254,36 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
         {/* ── شريط الأدوات ── */}
         <div className={styles.toolbar}>
 
+          {/* تبديل Sub / Dub */}
+          <div className={styles.toolRow}>
+            <span className={styles.toolLabel}>🌐 اللغة:</span>
+            <div className={styles.langTabs}>
+              <button
+                className={`${styles.langTab} ${langTab === 'sub' ? styles.langTabActive : ''}`}
+                onClick={() => setLangTab('sub')}>
+                🎌 مترجم (Sub)
+              </button>
+              <button
+                className={`${styles.langTab} ${langTab === 'dub' ? styles.langTabActive : ''} ${!hasDub ? styles.langTabDisabled : ''}`}
+                onClick={() => hasDub && setLangTab('dub')}
+                title={!hasDub ? 'الدبلجة غير متوفرة لهذا الأنمي' : ''}>
+                🇺🇸 مدبلج (Dub)
+                {!hasDub && <span className={styles.noDub}> — غير متاح</span>}
+              </button>
+            </div>
+          </div>
+
           {/* المصادر */}
           <div className={styles.toolRow}>
             <span className={styles.toolLabel}>🎬 المصدر:</span>
             <div className={styles.btnGroup}>
-              {sources.map((src, i) => (
+              {activeSrcs.map((src, i) => (
                 <button key={i}
                   className={`${styles.smallBtn} ${i === srcIdx ? styles.smallBtnActive : ''}`}
-                  onClick={() => { setSrcIdx(i); setLoading(true); setFailed(false); }}>
+                  onClick={() => { setSrcIdx(i); setLoading(true); setFailed(false); }}
+                  title={src.quality ? `جودة: ${src.quality}` : ''}>
                   {src.label}
+                  {src.quality && <span className={styles.qualityBadge}>{src.quality}</span>}
                 </button>
               ))}
             </div>
@@ -256,7 +303,9 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
                   className={`${styles.smallBtn} ${subIdx === i ? styles.smallBtnActive : ''}`}
                   onClick={() => setSubIdx(i)}>
                   {langLabel(sub)}
-                  {subLoading && subIdx === i && ' ⏳'}
+                  {subLoading && subIdx === i && sub.source !== 'auto-translate' && ' ⏳'}
+                  {subLoading && subIdx === i && sub.source === 'auto-translate' && translateProgress &&
+                    ` (${translateProgress.done}/${translateProgress.total})`}
                 </button>
               ))}
               {subList.length === 0 && (
@@ -268,19 +317,11 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
             {cues.length > 0 && (
               <button
                 className={`${styles.smallBtn} ${showSubtitles ? styles.smallBtnActive : ''}`}
-                onClick={() => setShowSubtitles(p => !p)}
-                title="إظهار/إخفاء الترجمة">
+                onClick={() => setShowSubtitles(p => !p)}>
                 {showSubtitles ? '👁 ظاهرة' : '👁 مخفية'}
               </button>
             )}
           </div>
-
-          {/* ملاحظة إذا لم تتزامن الترجمة */}
-          {cues.length > 0 && currentTime === 0 && (
-            <div className={styles.subNote}>
-              💡 الترجمة محمّلة — ستظهر تلقائياً بمجرد بدء التشغيل عبر postMessage من المشغّل
-            </div>
-          )}
         </div>
 
         {/* التنقل بين الحلقات */}
@@ -294,7 +335,7 @@ export default function WatchPage({ anime, episodes, currentEp, initialSources, 
             : <div />}
         </div>
 
-        {/* Auto-next toggle */}
+        {/* Auto-next */}
         <label className={styles.toggle}>
           <input type="checkbox" checked={autoNext} onChange={e => setAutoNext(e.target.checked)} />
           <span className={styles.slider} />
